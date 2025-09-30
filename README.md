@@ -1,8 +1,11 @@
 Base Decentralized Exchange
+
 📋 Project Description
+
 Base Decentralized Exchange is a fully decentralized cryptocurrency exchange built on the Base network. The platform enables peer-to-peer trading of ERC-20 tokens with automated market making and liquidity provision.
 
 🔧 Technologies Used
+
 Programming Language: Solidity 0.8.0
 Framework: Hardhat
 Network: Base Network
