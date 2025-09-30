@@ -33,40 +33,25 @@ base-dex/
 ├── hardhat.config.js
 ├── package.json
 └── README.md
+
+
 🚀 Installation and Setup
+
 1. Clone the repository
-bash
-
-
-1
-2
-git clone https://github.com/yourusername/base-dex.git
+git clone https://github.com/mariperdol/Base-Decentralized-Exchange.git
 cd base-dex
 2. Install dependencies
-bash
-
-
-1
 npm install
 3. Compile contracts
-bash
-
-
-1
 npx hardhat compile
 4. Run tests
-bash
-
-
-1
 npx hardhat test
 5. Deploy to Base network
-bash
-
-
-1
 npx hardhat run scripts/deploy.js --network base
+
+
 💰 Features
+
 Core Functionality:
 ✅ Token swapping
 ✅ Liquidity provision
@@ -74,6 +59,7 @@ Core Functionality:
 ✅ Trading fees
 ✅ Order book functionality
 ✅ Real-time trading
+
 Advanced Features:
 Automated Market Making - Constant product formula (x*y=k)
 Liquidity Pools - Multiple token pair support
@@ -81,7 +67,10 @@ Trading Fees - Configurable fee structure
 Slippage Protection - Minimize price impact
 Real-time Charts - Trading visualization
 Advanced Orders - Limit orders and stop-losses
+
+
 🛠️ Smart Contract Functions
+
 Core Functions:
 swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut) - Execute token swap
 addLiquidity(address tokenA, address tokenB, uint256 amountA, uint256 amountB) - Add liquidity to pool
