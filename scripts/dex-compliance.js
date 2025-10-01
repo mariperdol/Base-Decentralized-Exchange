@@ -1,4 +1,4 @@
-// base-dex/scripts/compliance.js
+
 const { ethers } = require("hardhat");
 const fs = require("fs");
 
