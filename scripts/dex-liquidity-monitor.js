@@ -7,8 +7,7 @@ async function monitorDEXLiquidity() {
   
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
-  
-  // Получение информации о пулах
+
   const pools = await dex.getAllPools();
   console.log("Number of pools:", pools.length);
   
