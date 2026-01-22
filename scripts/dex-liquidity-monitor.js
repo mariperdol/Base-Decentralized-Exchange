@@ -11,7 +11,7 @@ async function monitorDEXLiquidity() {
   const pools = await dex.getAllPools();
   console.log("Number of pools:", pools.length);
   
-  // Мониторинг ликвидности
+
   const liquidityData = [];
   
   for (let i = 0; i < pools.length; i++) {
