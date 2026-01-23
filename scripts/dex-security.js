@@ -30,7 +30,6 @@ async function analyzeDEXSecurity() {
       riskLevel: securityAssessment.riskLevel
     };
     
-    // Сканирование уязвимостей
     const vulnerabilityScan = await dex.getVulnerabilityScan();
     securityReport.vulnerabilityScan = {
       criticalVulnerabilities: vulnerabilityScan.criticalVulnerabilities.toString(),
