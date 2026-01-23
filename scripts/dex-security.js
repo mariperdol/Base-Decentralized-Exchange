@@ -20,7 +20,7 @@ async function analyzeDEXSecurity() {
   };
   
   try {
-    // Оценка безопасности
+
     const securityAssessment = await dex.getSecurityAssessment();
     securityReport.securityAssessment = {
       securityScore: securityAssessment.securityScore.toString(),
