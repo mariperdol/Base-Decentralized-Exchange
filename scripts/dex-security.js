@@ -8,7 +8,7 @@ async function analyzeDEXSecurity() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Анализ безопасности
+
   const securityReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
