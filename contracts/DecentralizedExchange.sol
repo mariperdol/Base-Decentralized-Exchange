@@ -166,4 +166,159 @@ contract DecentralizedExchange is Ownable {
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
+    // Добавить структуры:
+struct PriceFeed {
+    address token;
+    uint256 lastPrice;
+    uint256 timestamp;
+    uint256 priceChange24h;
+    uint256 volume24h;
+    uint256 liquidity;
+    bool enabled;
+}
+
+struct AutoPriceUpdate {
+    address token;
+    uint256 updateFrequency;
+    uint256 lastUpdateTime;
+    uint256 priceDeviationThreshold;
+    bool enabled;
+    string source;
+}
+
+// Добавить маппинги:
+mapping(address => PriceFeed) public priceFeeds;
+mapping(address => AutoPriceUpdate) public autoPriceUpdates;
+
+// Добавить события:
+event PriceFeedUpdated(
+    address indexed token,
+    uint256 newPrice,
+    uint256 timestamp,
+    uint256 change24h
+);
+
+event AutoPriceUpdateEnabled(
+    address indexed token,
+    uint256 frequency,
+    uint256 deviationThreshold,
+    bool enabled
+);
+
+event PriceUpdatedAutomatically(
+    address indexed token,
+    uint256 oldPrice,
+    uint256 newPrice,
+    uint256 timestamp
+);
+
+// Добавить функции:
+function updatePriceFeed(
+    address token,
+    uint256 price,
+    uint256 volume24h,
+    uint256 liquidity
+) external {
+    require(price > 0, "Price must be greater than 0");
+    
+    PriceFeed storage feed = priceFeeds[token];
+    uint256 oldPrice = feed.lastPrice;
+    
+    feed.lastPrice = price;
+    feed.timestamp = block.timestamp;
+    feed.volume24h = volume24h;
+    feed.liquidity = liquidity;
+    feed.enabled = true;
+    
+    // Calculate 24h change
+    if (feed.timestamp > block.timestamp - 86400) {
+        feed.priceChange24h = ((price - oldPrice) * 10000) / oldPrice;
+    }
+    
+    emit PriceFeedUpdated(token, price, block.timestamp, feed.priceChange24h);
+}
+
+function enableAutoPriceUpdate(
+    address token,
+    uint256 frequency,
+    uint256 deviationThreshold,
+    string memory source
+) external onlyOwner {
+    require(frequency >= 300, "Frequency too short (minimum 5 minutes)");
+    require(deviationThreshold <= 10000, "Deviation threshold too high");
+    
+    autoPriceUpdates[token] = AutoPriceUpdate({
+        token: token,
+        updateFrequency: frequency,
+        lastUpdateTime: block.timestamp,
+        priceDeviationThreshold: deviationThreshold,
+        enabled: true,
+        source: source
+    });
+    
+    emit AutoPriceUpdateEnabled(token, frequency, deviationThreshold, true);
+}
+
+function disableAutoPriceUpdate(address token) external onlyOwner {
+    autoPriceUpdates[token].enabled = false;
+    emit AutoPriceUpdateEnabled(token, 0, 0, false);
+}
+
+function updatePricesAutomatically() external {
+    // Iterate through all tokens with auto-update enabled
+    for (uint256 i = 0; i < 100; i++) { // Simplified loop
+        address token = address(i);
+        AutoPriceUpdate storage update = autoPriceUpdates[token];
+        
+        if (update.enabled && 
+            block.timestamp >= update.lastUpdateTime + update.updateFrequency) {
+            
+            // Get new price from external source (simplified)
+            uint256 newPrice = getExternalPrice(token);
+            
+            // Check deviation
+            PriceFeed storage feed = priceFeeds[token];
+            if (feed.lastPrice > 0) {
+                uint256 deviation = (abs(newPrice - feed.lastPrice) * 10000) / feed.lastPrice;
+                
+                if (deviation >= update.priceDeviationThreshold) {
+                    // Update price
+                    feed.lastPrice = newPrice;
+                    feed.timestamp = block.timestamp;
+                    
+                    emit PriceUpdatedAutomatically(token, feed.lastPrice, newPrice, block.timestamp);
+                }
+            }
+            
+            update.lastUpdateTime = block.timestamp;
+        }
+    }
+}
+
+function getExternalPrice(address token) internal view returns (uint256) {
+    // Simplified - would connect to external APIs in real implementation
+    return 1000000000000000000; // 1 ETH
+}
+
+function abs(int256 a) internal pure returns (uint256) {
+    return a >= 0 ? uint256(a) : uint256(-a);
+}
+
+function getPriceFeed(address token) external view returns (PriceFeed memory) {
+    return priceFeeds[token];
+}
+
+function getAutoPriceUpdate(address token) external view returns (AutoPriceUpdate memory) {
+    return autoPriceUpdates[token];
+}
+
+function getMarketStats() external view returns (
+    uint256 totalVolume,
+    uint256 totalLiquidity,
+    uint256 activeTokens,
+    uint256 avgPriceChange24h
+) {
+    // Implementation would return market statistics
+    return (0, 0, 0, 0);
+}
 }
