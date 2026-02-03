@@ -166,7 +166,7 @@ contract DecentralizedExchange is Ownable {
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
-    // Добавить структуры:
+
 struct PriceFeed {
     address token;
     uint256 lastPrice;
@@ -186,11 +186,11 @@ struct AutoPriceUpdate {
     string source;
 }
 
-// Добавить маппинги:
+
 mapping(address => PriceFeed) public priceFeeds;
 mapping(address => AutoPriceUpdate) public autoPriceUpdates;
 
-// Добавить события:
+
 event PriceFeedUpdated(
     address indexed token,
     uint256 newPrice,
