@@ -332,9 +332,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract DecentralizedExchange is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    // Существующие структуры и функции...
-    
-    // Новые структуры для сложных ордеров
+
     struct LimitOrder {
         uint256 orderId;
         address trader;
