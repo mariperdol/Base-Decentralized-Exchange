@@ -677,7 +677,7 @@ contract DecentralizedExchange is Ownable, ReentrancyGuard {
         IERC20(order.tokenIn).transferFrom(msg.sender, address(this), amountIn);
         IERC20(order.tokenOut).transfer(msg.sender, amountOut);
         
-        // Передача комиссии
+      
         if (fee > 0) {
             IERC20(order.tokenIn).transfer(owner(), fee);
         }
