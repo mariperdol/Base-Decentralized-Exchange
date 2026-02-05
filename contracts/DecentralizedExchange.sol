@@ -321,4 +321,598 @@ function getMarketStats() external view returns (
     // Implementation would return market statistics
     return (0, 0, 0, 0);
 }
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
+contract DecentralizedExchange is Ownable, ReentrancyGuard {
+    using SafeMath for uint256;
+
+    // Существующие структуры и функции...
+    
+    // Новые структуры для сложных ордеров
+    struct LimitOrder {
+        uint256 orderId;
+        address trader;
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint256 minAmountOut;
+        uint256 price;
+        uint256 expiration;
+        bool active;
+        uint256 timestamp;
+        uint256 orderType; // 0: limit, 1: stop-loss, 2: take-profit
+        uint256 stopPrice;
+        uint256 trailingStop;
+        uint256 slippage;
+        string orderTag;
+        uint256 fee;
+        uint256 filledAmount;
+        uint256 remainingAmount;
+        mapping(address => bool) filledBy;
+    }
+    
+    struct StopLossOrder {
+        uint256 orderId;
+        address trader;
+        address token;
+        uint256 amount;
+        uint256 stopPrice;
+        uint256 triggerPrice;
+        uint256 expiration;
+        bool active;
+        uint256 timestamp;
+        uint256 fee;
+        uint256 slippage;
+        string description;
+    }
+    
+    struct TakeProfitOrder {
+        uint256 orderId;
+        address trader;
+        address token;
+        uint256 amount;
+        uint256 profitTarget;
+        uint256 triggerPrice;
+        uint256 expiration;
+        bool active;
+        uint256 timestamp;
+        uint256 fee;
+        uint256 slippage;
+        string description;
+    }
+    
+    struct OrderBook {
+        address tokenA;
+        address tokenB;
+        uint256[] bidPrices;
+        uint256[] bidAmounts;
+        uint256[] askPrices;
+        uint256[] askAmounts;
+        uint256 lastUpdate;
+        uint256[] activeOrders;
+    }
+    
+    struct MarketMaker {
+        address maker;
+        address[] tokens;
+        uint256[] liquidityAmounts;
+        uint256 fee;
+        uint256 spread;
+        uint256 maxPosition;
+        uint256 lastUpdate;
+        bool active;
+    }
+    
+    // Новые маппинги
+    mapping(uint256 => LimitOrder) public limitOrders;
+    mapping(uint256 => StopLossOrder) public stopLossOrders;
+    mapping(uint256 => TakeProfitOrder) public takeProfitOrders;
+    mapping(address => mapping(address => OrderBook)) public orderBooks;
+    mapping(address => MarketMaker) public marketMakers;
+    mapping(address => uint256[]) public userOrders;
+    mapping(uint256 => bool) public orderExecuted;
+    
+    // Новые события
+    event LimitOrderCreated(
+        uint256 indexed orderId,
+        address indexed trader,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint256 price,
+        uint256 expiration,
+        uint256 orderType,
+        string orderTag
+    );
+    
+    event LimitOrderExecuted(
+        uint256 indexed orderId,
+        address indexed trader,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 fee,
+        uint256 timestamp
+    );
+    
+    event LimitOrderCancelled(
+        uint256 indexed orderId,
+        address indexed trader,
+        uint256 timestamp
+    );
+    
+    event StopLossOrderCreated(
+        uint256 indexed orderId,
+        address indexed trader,
+        address token,
+        uint256 amount,
+        uint256 stopPrice,
+        uint256 expiration,
+        uint256 fee,
+        string description
+    );
+    
+    event TakeProfitOrderCreated(
+        uint256 indexed orderId,
+        address indexed trader,
+        address token,
+        uint256 amount,
+        uint256 profitTarget,
+        uint256 expiration,
+        uint256 fee,
+        string description
+    );
+    
+    event OrderBookUpdated(
+        address tokenA,
+        address tokenB,
+        uint256[] bidPrices,
+        uint256[] askPrices,
+        uint256 timestamp
+    );
+    
+    event MarketMakerAdded(
+        address indexed maker,
+        address[] tokens,
+        uint256[] liquidityAmounts,
+        uint256 fee,
+        uint256 spread,
+        uint256 maxPosition,
+        uint256 timestamp
+    );
+    
+    event MarketMakerRemoved(
+        address indexed maker,
+        uint256 timestamp
+    );
+    
+    // Новые функции для сложных ордеров
+    function createLimitOrder(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint256 price,
+        uint256 expiration,
+        uint256 orderType,
+        string memory orderTag,
+        uint256 slippage
+    ) external {
+        require(tokenIn != tokenOut, "Same tokens");
+        require(amountIn > 0, "Amount must be greater than 0");
+        require(price > 0, "Price must be greater than 0");
+        require(expiration > block.timestamp, "Expiration must be in future");
+        require(slippage <= 10000, "Slippage too high");
+        
+        uint256 orderId = uint256(keccak256(abi.encodePacked(tokenIn, tokenOut, amountIn, block.timestamp)));
+        
+        limitOrders[orderId] = LimitOrder({
+            orderId: orderId,
+            trader: msg.sender,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            amountIn: amountIn,
+            minAmountOut: minAmountOut,
+            price: price,
+            expiration: expiration,
+            active: true,
+            timestamp: block.timestamp,
+            orderType: orderType,
+            stopPrice: 0,
+            trailingStop: 0,
+            slippage: slippage,
+            orderTag: orderTag,
+            fee: 0, // Комиссия будет рассчитана при исполнении
+            filledAmount: 0,
+            remainingAmount: amountIn,
+            filledBy: new mapping(address => bool)
+        });
+        
+        // Добавить в список пользователя
+        userOrders[msg.sender].push(orderId);
+        
+        // Обновить книгу ордеров
+        updateOrderBook(tokenIn, tokenOut, orderId, true);
+        
+        emit LimitOrderCreated(
+            orderId,
+            msg.sender,
+            tokenIn,
+            tokenOut,
+            amountIn,
+            minAmountOut,
+            price,
+            expiration,
+            orderType,
+            orderTag
+        );
+    }
+    
+    function createStopLossOrder(
+        address token,
+        uint256 amount,
+        uint256 stopPrice,
+        uint256 triggerPrice,
+        uint256 expiration,
+        uint256 slippage,
+        string memory description
+    ) external {
+        require(token != address(0), "Invalid token");
+        require(amount > 0, "Amount must be greater than 0");
+        require(stopPrice > 0, "Stop price must be greater than 0");
+        require(triggerPrice > 0, "Trigger price must be greater than 0");
+        require(expiration > block.timestamp, "Expiration must be in future");
+        require(slippage <= 10000, "Slippage too high");
+        
+        uint256 orderId = uint256(keccak256(abi.encodePacked(token, amount, stopPrice, block.timestamp)));
+        
+        stopLossOrders[orderId] = StopLossOrder({
+            orderId: orderId,
+            trader: msg.sender,
+            token: token,
+            amount: amount,
+            stopPrice: stopPrice,
+            triggerPrice: triggerPrice,
+            expiration: expiration,
+            active: true,
+            timestamp: block.timestamp,
+            fee: 0,
+            slippage: slippage,
+            description: description
+        });
+        
+        // Добавить в список пользователя
+        userOrders[msg.sender].push(orderId);
+        
+        emit StopLossOrderCreated(
+            orderId,
+            msg.sender,
+            token,
+            amount,
+            stopPrice,
+            expiration,
+            0,
+            description
+        );
+    }
+    
+    function createTakeProfitOrder(
+        address token,
+        uint256 amount,
+        uint256 profitTarget,
+        uint256 triggerPrice,
+        uint256 expiration,
+        uint256 slippage,
+        string memory description
+    ) external {
+        require(token != address(0), "Invalid token");
+        require(amount > 0, "Amount must be greater than 0");
+        require(profitTarget > 0, "Profit target must be greater than 0");
+        require(triggerPrice > 0, "Trigger price must be greater than 0");
+        require(expiration > block.timestamp, "Expiration must be in future");
+        require(slippage <= 10000, "Slippage too high");
+        
+        uint256 orderId = uint256(keccak256(abi.encodePacked(token, amount, profitTarget, block.timestamp)));
+        
+        takeProfitOrders[orderId] = TakeProfitOrder({
+            orderId: orderId,
+            trader: msg.sender,
+            token: token,
+            amount: amount,
+            profitTarget: profitTarget,
+            triggerPrice: triggerPrice,
+            expiration: expiration,
+            active: true,
+            timestamp: block.timestamp,
+            fee: 0,
+            slippage: slippage,
+            description: description
+        });
+        
+        // Добавить в список пользователя
+        userOrders[msg.sender].push(orderId);
+        
+        emit TakeProfitOrderCreated(
+            orderId,
+            msg.sender,
+            token,
+            amount,
+            profitTarget,
+            expiration,
+            0,
+            description
+        );
+    }
+    
+    function executeLimitOrder(
+        uint256 orderId,
+        uint256 amountIn
+    ) external {
+        LimitOrder storage order = limitOrders[orderId];
+        require(order.active, "Order not active");
+        require(block.timestamp <= order.expiration, "Order expired");
+        require(order.trader != msg.sender, "Cannot execute own order");
+        require(amountIn > 0, "Amount must be greater than 0");
+        require(amountIn <= order.remainingAmount, "Amount exceeds remaining");
+        
+        // Проверка цены
+        uint256 currentPrice = getCurrentPrice(order.tokenIn, order.tokenOut);
+        require(currentPrice >= order.price, "Price condition not met");
+        
+        // Проверка минимального выхода
+        uint256 amountOut = calculateAmountOut(order.tokenIn, order.tokenOut, amountIn, order.price);
+        require(amountOut >= order.minAmountOut, "Amount below minimum");
+        
+        // Выполнить обмен
+        uint256 fee = amountIn.mul(30).div(10000); // 0.3% комиссия
+        uint256 amountAfterFee = amountIn.sub(fee);
+        
+        // Передача токенов
+        IERC20(order.tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(order.tokenOut).transfer(msg.sender, amountOut);
+        
+        // Передача комиссии
+        if (fee > 0) {
+            IERC20(order.tokenIn).transfer(owner(), fee);
+        }
+        
+        // Обновить ордер
+        order.filledAmount = order.filledAmount.add(amountIn);
+        order.remainingAmount = order.remainingAmount.sub(amountIn);
+        order.filledBy[msg.sender] = true;
+        
+        // Завершить ордер если полностью исполнен
+        if (order.remainingAmount == 0) {
+            order.active = false;
+        }
+        
+        emit LimitOrderExecuted(
+            orderId,
+            msg.sender,
+            amountIn,
+            amountOut,
+            fee,
+            block.timestamp
+        );
+    }
+    
+    function cancelLimitOrder(uint256 orderId) external {
+        LimitOrder storage order = limitOrders[orderId];
+        require(order.active, "Order not active");
+        require(order.trader == msg.sender, "Not order owner");
+        
+        order.active = false;
+        
+        // Обновить книгу ордеров
+        updateOrderBook(order.tokenIn, order.tokenOut, orderId, false);
+        
+        emit LimitOrderCancelled(orderId, msg.sender, block.timestamp);
+    }
+    
+    function updateOrderBook(
+        address tokenA,
+        address tokenB,
+        uint256 orderId,
+        bool addOrder
+    ) internal {
+        OrderBook storage book = orderBooks[tokenA][tokenB];
+        book.lastUpdate = block.timestamp;
+        
+        // В реальной реализации здесь будет логика обновления книги ордеров
+        // Для демонстрации просто обновляем метку времени
+        
+        emit OrderBookUpdated(tokenA, tokenB, new uint256[](0), new uint256[](0), block.timestamp);
+    }
+    
+    function addMarketMaker(
+        address[] memory tokens,
+        uint256[] memory liquidityAmounts,
+        uint256 fee,
+        uint256 spread,
+        uint256 maxPosition
+    ) external {
+        require(tokens.length == liquidityAmounts.length, "Array length mismatch");
+        require(fee <= 10000, "Fee too high");
+        require(spread <= 10000, "Spread too high");
+        require(maxPosition > 0, "Max position must be greater than 0");
+        
+        // Проверка, что токены уникальны
+        for (uint256 i = 0; i < tokens.length; i++) {
+            require(tokens[i] != address(0), "Invalid token");
+        }
+        
+        marketMakers[msg.sender] = MarketMaker({
+            maker: msg.sender,
+            tokens: tokens,
+            liquidityAmounts: liquidityAmounts,
+            fee: fee,
+            spread: spread,
+            maxPosition: maxPosition,
+            lastUpdate: block.timestamp,
+            active: true
+        });
+        
+        emit MarketMakerAdded(
+            msg.sender,
+            tokens,
+            liquidityAmounts,
+            fee,
+            spread,
+            maxPosition,
+            block.timestamp
+        );
+    }
+    
+    function removeMarketMaker() external {
+        require(marketMakers[msg.sender].maker == msg.sender, "Not market maker");
+        
+        marketMakers[msg.sender].active = false;
+        
+        emit MarketMakerRemoved(msg.sender, block.timestamp);
+    }
+    
+    function calculateAmountOut(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 price
+    ) internal view returns (uint256) {
+        // Простая реализация - в реальной системе будет сложнее
+        return amountIn.mul(price).div(10000);
+    }
+    
+    function getCurrentPrice(
+        address tokenIn,
+        address tokenOut
+    ) internal view returns (uint256) {
+        // Простая реализация - в реальной системе будет сложнее
+        return 10000; // 1:1 отношение
+    }
+    
+    function getLimitOrderInfo(uint256 orderId) external view returns (LimitOrder memory) {
+        return limitOrders[orderId];
+    }
+    
+    function getStopLossOrderInfo(uint256 orderId) external view returns (StopLossOrder memory) {
+        return stopLossOrders[orderId];
+    }
+    
+    function getTakeProfitOrderInfo(uint256 orderId) external view returns (TakeProfitOrder memory) {
+        return takeProfitOrders[orderId];
+    }
+    
+    function getUserOrders(address user) external view returns (uint256[] memory) {
+        return userOrders[user];
+    }
+    
+    function getActiveLimitOrders(
+        address tokenIn,
+        address tokenOut
+    ) external view returns (uint256[] memory) {
+        // Возвращает активные ордера для пары токенов
+        return new uint256[](0);
+    }
+    
+    function getMarketMakerInfo(address maker) external view returns (MarketMaker memory) {
+        return marketMakers[maker];
+    }
+    
+    function getOrderBookInfo(address tokenA, address tokenB) external view returns (OrderBook memory) {
+        return orderBooks[tokenA][tokenB];
+    }
+    
+    function getMarketMakerStats() external view returns (
+        uint256 totalMarketMakers,
+        uint256 activeMarketMakers,
+        uint256 totalLiquidity,
+        uint256 avgFee,
+        uint256 avgSpread
+    ) {
+        uint256 totalMarketMakersCount = 0;
+        uint256 activeMarketMakersCount = 0;
+        uint256 totalLiquidityAmount = 0;
+        uint256 totalFee = 0;
+        uint256 totalSpread = 0;
+        
+        // Подсчет статистики
+        for (uint256 i = 0; i < 100; i++) {
+            if (marketMakers[address(i)].maker != address(0)) {
+                totalMarketMakersCount++;
+                totalLiquidityAmount = totalLiquidityAmount.add(getTotalLiquidity(address(i)));
+                totalFee = totalFee.add(marketMakers[address(i)].fee);
+                totalSpread = totalSpread.add(marketMakers[address(i)].spread);
+                
+                if (marketMakers[address(i)].active) {
+                    activeMarketMakersCount++;
+                }
+            }
+        }
+        
+        uint256 avgFeeValue = totalMarketMakersCount > 0 ? totalFee / totalMarketMakersCount : 0;
+        uint256 avgSpreadValue = totalMarketMakersCount > 0 ? totalSpread / totalMarketMakersCount : 0;
+        
+        return (
+            totalMarketMakersCount,
+            activeMarketMakersCount,
+            totalLiquidityAmount,
+            avgFeeValue,
+            avgSpreadValue
+        );
+    }
+    
+    function getTotalLiquidity(address maker) internal view returns (uint256) {
+        MarketMaker storage mm = marketMakers[maker];
+        uint256 total = 0;
+        for (uint256 i = 0; i < mm.liquidityAmounts.length; i++) {
+            total = total.add(mm.liquidityAmounts[i]);
+        }
+        return total;
+    }
+    
+    function getLimitOrderStats() external view returns (
+        uint256 totalOrders,
+        uint256 activeOrders,
+        uint256 executedOrders,
+        uint256 avgAmount,
+        uint256 avgPrice
+    ) {
+        uint256 totalOrdersCount = 0;
+        uint256 activeOrdersCount = 0;
+        uint256 executedOrdersCount = 0;
+        uint256 totalAmount = 0;
+        uint256 totalPrice = 0;
+        
+        // Подсчет статистики
+        for (uint256 i = 0; i < 10000; i++) {
+            if (limitOrders[i].orderId != 0) {
+                totalOrdersCount++;
+                totalAmount = totalAmount.add(limitOrders[i].amountIn);
+                totalPrice = totalPrice.add(limitOrders[i].price);
+                
+                if (limitOrders[i].active) {
+                    activeOrdersCount++;
+                } else if (orderExecuted[i]) {
+                    executedOrdersCount++;
+                }
+            }
+        }
+        
+        uint256 avgAmountValue = totalOrdersCount > 0 ? totalAmount / totalOrdersCount : 0;
+        uint256 avgPriceValue = totalOrdersCount > 0 ? totalPrice / totalOrdersCount : 0;
+        
+        return (
+            totalOrdersCount,
+            activeOrdersCount,
+            executedOrdersCount,
+            avgAmountValue,
+            avgPriceValue
+        );
+    }
+}
 }
