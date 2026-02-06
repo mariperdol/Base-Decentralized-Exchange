@@ -678,7 +678,7 @@ function getMarketStats() external view returns (
         uint256 amountOut = calculateAmountOut(order.tokenIn, order.tokenOut, amountIn, order.price);
         require(amountOut >= order.minAmountOut, "Amount below minimum");
         
-        // Выполнить обмен
+  
         uint256 fee = amountIn.mul(30).div(10000); // 0.3% комиссия
         uint256 amountAfterFee = amountIn.sub(fee);
         
