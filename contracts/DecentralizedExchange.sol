@@ -139,6 +139,26 @@ contract DecentralizedExchange is Ownable {
         
         emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut);
     }
+
+function calculateSwapOutput(
+    address tokenIn,
+    address tokenOut,
+    uint256 amountIn
+) public view returns (uint256) {
+    // Защита от переполнения
+    uint256 amountInWithFee = amountIn.mul(FEE_DENOMINATOR.sub(pair.fee)).div(FEE_DENOMINATOR);
+    
+    // Защита от переполнения
+    require(amountInWithFee <= type(uint256).max / 1000, "Amount calculation overflow");
+    
+    uint256 amountOut = amountInWithFee.mul(pair.reserve1).div(
+        pair.reserve0.add(amountInWithFee)
+    );
+    
+    // Защита от переполнения
+    require(amountOut <= type(uint256).max, "Output calculation overflow");
+    return amountOut;
+}
     
     function getAmountOut(
         address tokenIn,
