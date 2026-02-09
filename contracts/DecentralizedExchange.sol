@@ -46,7 +46,7 @@ contract BaseSimpleRouter {
         amountOut = getAmountOut(amountIn, reserveIn, reserveOut);
         require(amountOut >= minOut, "slippage");
 
-        IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn);
+        IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn); 
 
         if (tokenIn == t0) {
             p.swap(0, amountOut, to);
