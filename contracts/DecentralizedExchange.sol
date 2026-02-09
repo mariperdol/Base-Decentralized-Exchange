@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /*
-  Educational router:
+  Educational router: 
   - swapExactTokensForTokens
   - minOut slippage protection
 */
