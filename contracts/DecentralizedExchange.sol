@@ -43,10 +43,6 @@ contract BaseSimpleRouter {
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn); 
 
-        if (tokenIn == t0) {
-            p.swap(0, amountOut, to);
-        } else {
-            p.swap(amountOut, 0, to);
-        }
+       
     }
 }
