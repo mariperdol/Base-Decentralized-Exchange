@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ILiquidityPool {
     function token0() external view returns (address);
@@ -11,6 +13,15 @@ interface ILiquidityPool {
 
 contract DecentralizedExchange {
     using SafeERC20 for IERC20;
+
+    event SwapExecuted(
+        address indexed pool,
+        address indexed tokenIn,
+        uint256 amountIn,
+        uint256 amountOut,
+        address indexed to,
+        uint256 deadline
+    );
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) public pure returns (uint256) {
         require(amountIn > 0, "in=0");
@@ -46,6 +57,7 @@ contract DecentralizedExchange {
 
         if (tokenIn == t0) p.swap(0, amountOut, to);
         else p.swap(amountOut, 0, to);
+
+        emit SwapExecuted(pool, tokenIn, amountIn, amountOut, to, deadline);
     }
 }
-
