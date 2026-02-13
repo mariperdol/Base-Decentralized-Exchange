@@ -1,47 +1,45 @@
-
-const { ethers } = require("hardhat");
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
 
 async function main() {
-  console.log("Deploying Base Decentralized Exchange...");
-  
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.getBalance()).toString());
+  console.log("Deployer:", deployer.address);
 
+  // Optional: deploy LiquidityManager if it exists and needs no params
+  let lmAddr = "";
+  try {
+    const LM = await ethers.getContractFactory("LiquidityManager");
+    const lm = await LM.deploy();
+    await lm.deployed();
+    lmAddr = lm.address;
+    console.log("LiquidityManager:", lmAddr);
+  } catch (e) {
+    console.log("LiquidityManager not deployed (constructor mismatch or missing). Skipped.");
+  }
 
-  const Token1 = await ethers.getContractFactory("ERC20Token");
-  const token1 = await Token1.deploy("Token1", "TKN1");
-  await token1.deployed();
-  
-  const Token2 = await ethers.getContractFactory("ERC20Token");
-  const token2 = await Token2.deploy("Token2", "TKN2");
-  await token2.deployed();
-
-
-  const DecentralizedExchange = await ethers.getContractFactory("DecentralizedExchangeV2");
-  const dex = await DecentralizedExchange.deploy();
-
+  const Dex = await ethers.getContractFactory("DecentralizedExchange");
+  const dex = await Dex.deploy();
   await dex.deployed();
 
-  console.log("Base Decentralized Exchange deployed to:", dex.address);
-  console.log("Token1 deployed to:", token1.address);
-  console.log("Token2 deployed to:", token2.address);
-  
-  // Сохраняем адреса
-  const fs = require("fs");
-  const data = {
-    dex: dex.address,
-    token1: token1.address,
-    token2: token2.address,
-    owner: deployer.address
+  console.log("DecentralizedExchange:", dex.address);
+
+  const out = {
+    network: hre.network.name,
+    chainId: (await ethers.provider.getNetwork()).chainId,
+    deployer: deployer.address,
+    contracts: {
+      LiquidityManager: lmAddr || null,
+      DecentralizedExchange: dex.address
+    }
   };
-  
-  fs.writeFileSync("./config/deployment.json", JSON.stringify(data, null, 2));
+
+  const outPath = path.join(__dirname, "..", "deployments.json");
+  fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
+  console.log("Saved:", outPath);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
