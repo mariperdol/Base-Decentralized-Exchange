@@ -17,7 +17,7 @@ async function main() {
   const token2 = await Token2.deploy("Token2", "TKN2");
   await token2.deployed();
 
-  // Деплой DEX контракта
+
   const DecentralizedExchange = await ethers.getContractFactory("DecentralizedExchangeV2");
   const dex = await DecentralizedExchange.deploy();
 
