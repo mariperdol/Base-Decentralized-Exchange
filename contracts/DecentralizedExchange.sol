@@ -60,4 +60,10 @@ contract DecentralizedExchange {
 
         emit SwapExecuted(pool, tokenIn, amountIn, amountOut, to, deadline);
     }
+    uint256 public swapFeeBps = 30; // 0.3%
+
+function setSwapFee(uint256 newFee) external onlyOwner {
+    require(newFee <= 100, "too high");
+    swapFeeBps = newFee;
+}
 }
