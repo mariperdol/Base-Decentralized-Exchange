@@ -8,7 +8,7 @@ async function analyzeDEXCosts() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Анализ затрат
+
   const costReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
@@ -20,7 +20,7 @@ async function analyzeDEXCosts() {
   };
   
   try {
-    // Разбивка затрат
+ 
     const costBreakdown = await dex.getCostBreakdown();
     costReport.costBreakdown = {
       developmentCost: costBreakdown.developmentCost.toString(),
@@ -31,7 +31,7 @@ async function analyzeDEXCosts() {
       totalCost: costBreakdown.totalCost.toString()
     };
     
-    // Метрики эффективности
+
     const efficiencyMetrics = await dex.getEfficiencyMetrics();
     costReport.efficiencyMetrics = {
       costPerTrade: efficiencyMetrics.costPerTrade.toString(),
@@ -41,7 +41,7 @@ async function analyzeDEXCosts() {
       efficiencyScore: efficiencyMetrics.efficiencyScore.toString()
     };
     
-    // Оптимизация затрат
+
     const costOptimization = await dex.getCostOptimization();
     costReport.costOptimization = {
       optimizationOpportunities: costOptimization.optimizationOpportunities,
@@ -49,8 +49,7 @@ async function analyzeDEXCosts() {
       implementationTime: costOptimization.implementationTime.toString(),
       riskLevel: costOptimization.riskLevel
     };
-    
-    // Анализ доходов
+
     const revenueAnalysis = await dex.getRevenueAnalysis();
     costReport.revenueAnalysis = {
       totalRevenue: revenueAnalysis.totalRevenue.toString(),
