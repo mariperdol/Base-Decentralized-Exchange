@@ -65,5 +65,5 @@ contract DecentralizedExchange {
 function setSwapFee(uint256 newFee) external onlyOwner {
     require(newFee <= 100, "too high");
     swapFeeBps = newFee;
-}
+    }
 }
