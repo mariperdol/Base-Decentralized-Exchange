@@ -8,7 +8,6 @@ async function checkDEXCompliance() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Проверка соответствия стандартам
   const complianceReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
@@ -20,7 +19,7 @@ async function checkDEXCompliance() {
   };
   
   try {
-    // Статус соответствия
+
     const complianceStatus = await dex.getComplianceStatus();
     complianceReport.complianceStatus = {
       regulatoryCompliance: complianceStatus.regulatoryCompliance,
