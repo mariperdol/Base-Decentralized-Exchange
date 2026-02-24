@@ -47,7 +47,7 @@ async function monitorDEXLiquidity() {
     recommendations: []
   };
   
-  // Проверка на проблемы ликвидности
+
   liquidityData.forEach(pool => {
     if (parseInt(pool.liquidityRatio) < 80) {
       liquidityReport.liquidityAlerts.push(`Low liquidity in pool ${pool.poolAddress}`);
@@ -57,7 +57,7 @@ async function monitorDEXLiquidity() {
     }
   });
   
-  // Рекомендации
+
   if (avgLiquidityRatio < 90) {
     liquidityReport.recommendations.push("Add more liquidity to improve trading experience");
   }
