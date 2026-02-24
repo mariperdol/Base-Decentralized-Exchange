@@ -8,7 +8,7 @@ async function analyzeDEXPerformance() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Анализ производительности
+
   const performanceReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
@@ -20,7 +20,7 @@ async function analyzeDEXPerformance() {
   };
   
   try {
-    // Метрики производительности
+
     const performanceMetrics = await dex.getPerformanceMetrics();
     performanceReport.performanceMetrics = {
       responseTime: performanceMetrics.responseTime.toString(),
