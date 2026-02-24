@@ -8,7 +8,7 @@ async function performDEXSecurityAudit() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Аудит безопасности
+
   const securityReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
@@ -20,7 +20,7 @@ async function performDEXSecurityAudit() {
   };
   
   try {
-    // Сводка аудита
+   
     const auditSummary = await dex.getAuditSummary();
     securityReport.auditSummary = {
       totalTests: auditSummary.totalTests.toString(),
