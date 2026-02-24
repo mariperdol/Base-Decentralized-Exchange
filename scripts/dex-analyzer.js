@@ -7,7 +7,7 @@ async function analyzeDEX() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Получение общей статистики
+
   const exchangeStats = await dex.getExchangeStats();
   console.log("Exchange Stats:", {
     totalVolume: exchangeStats.totalVolume.toString(),
@@ -17,7 +17,7 @@ async function analyzeDEX() {
     totalUsers: exchangeStats.totalUsers.toString()
   });
   
-  // Получение информации о пулах
+
   const poolStats = await dex.getPoolStats();
   console.log("Pool Stats:", {
     totalPools: poolStats.totalPools.toString(),
@@ -25,7 +25,7 @@ async function analyzeDEX() {
     totalLiquidity: poolStats.totalLiquidity.toString()
   });
   
-  // Анализ объемов
+
   const volume24h = await dex.getVolume24h();
   console.log("24h Volume:", volume24h.toString());
   
