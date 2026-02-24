@@ -8,7 +8,7 @@ async function monitorDEXPerformance() {
   const dexAddress = "0x...";
   const dex = await ethers.getContractAt("DecentralizedExchangeV2", dexAddress);
   
-  // Мониторинг производительности
+
   const performanceReport = {
     timestamp: new Date().toISOString(),
     dexAddress: dexAddress,
@@ -21,7 +21,7 @@ async function monitorDEXPerformance() {
   };
   
   try {
-    // Метрики обменника
+
     const exchangeMetrics = await dex.getExchangeMetrics();
     performanceReport.exchangeMetrics = {
       totalVolume: exchangeMetrics.totalVolume.toString(),
@@ -42,7 +42,7 @@ async function monitorDEXPerformance() {
       poolUtilization: poolMetrics.poolUtilization.toString()
     };
     
-    // Метрики торговли
+
     const tradingMetrics = await dex.getTradingMetrics();
     performanceReport.tradingMetrics = {
       avgSlippage: tradingMetrics.avgSlippage.toString(),
@@ -52,7 +52,7 @@ async function monitorDEXPerformance() {
       maxSlippage: tradingMetrics.maxSlippage.toString()
     };
     
-    // Метрики пользователей
+
     const userMetrics = await dex.getUserMetrics();
     performanceReport.userMetrics = {
       activeUsers: userMetrics.activeUsers.toString(),
@@ -62,7 +62,7 @@ async function monitorDEXPerformance() {
       userEngagement: userMetrics.userEngagement.toString()
     };
     
-    // Проверка на проблемы
+
     if (parseFloat(performanceReport.tradingMetrics.successRate) < 95) {
       performanceReport.alerts.push("Low trading success rate detected");
     }
@@ -75,7 +75,7 @@ async function monitorDEXPerformance() {
       performanceReport.alerts.push("Low user retention rate detected");
     }
     
-    // Рекомендации
+
     if (parseFloat(performanceReport.tradingMetrics.successRate) < 98) {
       performanceReport.recommendations.push("Investigate trading transaction failures");
     }
@@ -88,7 +88,7 @@ async function monitorDEXPerformance() {
       performanceReport.recommendations.push("Implement user retention strategies");
     }
     
-    // Сохранение отчета
+
     const performanceFileName = `dex-performance-${Date.now()}.json`;
     fs.writeFileSync(`./monitoring/${performanceFileName}`, JSON.stringify(performanceReport, null, 2));
     console.log(`Performance report created: ${performanceFileName}`);
