@@ -6,7 +6,7 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deployer:", deployer.address);
 
-  // Optional: deploy LiquidityManager if it exists and needs no params
+
   let lmAddr = "";
   try {
     const LM = await ethers.getContractFactory("LiquidityManager");
